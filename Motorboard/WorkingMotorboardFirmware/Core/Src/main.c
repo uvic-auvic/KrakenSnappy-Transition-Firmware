@@ -24,7 +24,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "Timer1.h"
+#include "Timer1.h" //Timer.h is firmware made by AUVIC for controlling the PWM output
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -42,14 +42,14 @@
 
 //PWM Timing Parameters
 #define PrescalerRegister 84 - 1 //Divide timer clock (84MHZ) by x + 1
-#define INITIALIZE_DUTY 7.5 //7.5 for 1500 us
-#define Stop_Duty 7.5
+#define INITIALIZE_DUTY 7.5 //7.5 for 1500 us pulse width of PWM which initializes motors
+#define Stop_Duty 7.5 //Same as initialize duty
 #define PWM_PERIOD 20000    //Period of PWM timers
-#define MOTOR_RANGE 200		//Motor power input range (400 Max) leave at 200 unless told otherwise by Elec Lead
+#define MOTOR_RANGE 400		//Motor power input range (400 Max)
 
 //Time to Update Parameters
 #define TimeBetweenStatusUpdates 1 //Time between status updates in seconds
-#define StatusUpdateSize 11
+#define StatusUpdateSize 11 //Size of status update message sent to jetson (in bytes)
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -58,6 +58,7 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+	//Initializing interupt handelers
 I2C_HandleTypeDef hi2c1;
 
 TIM_HandleTypeDef htim6;
@@ -69,20 +70,23 @@ DMA_HandleTypeDef hdma_usart1_rx;
 
 /* USER CODE BEGIN PV */
 
-int circleBufferRead = 0;
-int circleBufferStore = 0;
-int messages = 0;
+int circleBufferRead = 0; //Variable to track where buffer is read from
+int circleBufferStore = 0; //Variable to track where information is stored in bufffer
+int messages = 0; //Tracks # of messages in buffer
 
-uint8_t circleBuffer[CIRCULAR_BUFFER_SIZE] = {0};
-uint8_t statusUpdate[StatusUpdateSize] = {0};
+uint8_t circleBuffer[CIRCULAR_BUFFER_SIZE] = {0}; //Creates an array of bytes of specified size for the buffer
+uint8_t statusUpdate[StatusUpdateSize] = {0}; //Creates an array for status update information
 
-
+// Intializing variables for traking mode of LEDs on the motor board (frquency of flashing)
 int LEDTimer1 = 3;
 int LEDTimer2 = 0;
 int LEDTimer3 = 0;
 int LEDTimer4 = 0;
+
+// Variable for counting time between led flashes
 float LEDCount = 0;
 
+// 
 float LEDState1 = 0;
 float LEDState2 = 0;
 
@@ -107,9 +111,11 @@ static void MX_NVIC_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+
+//Sends Pulses of 1500us to intialize all motors on the sub
 void Initialize_Motors(){
 
-
+	//Initializing PWM parameters on the timers
 	INIT_TIM_PWM(TIM5, PWM_PERIOD,PrescalerRegister);
 	INIT_TIM_PWM(TIM1,PWM_PERIOD,PrescalerRegister);
 	INIT_TIM_PWM(TIM11,PWM_PERIOD,PrescalerRegister);
@@ -140,6 +146,7 @@ void Initialize_Motors(){
 	Start_PWM(TIM11,1,INITIALIZE_DUTY,GPIOB,9,3);
 }
 
+//Stops all motors by sending 1500us pwm pulses
 void Stop_All_Motors(){
 
 	Set_Duty_Cycle(TIM5,2,Stop_Duty);
@@ -152,6 +159,7 @@ void Stop_All_Motors(){
 }
 
 
+//Sets enable pins high for all motor enables (disables motors as it is inverted)
 void set_Enables_High(){
       HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
       HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_SET);
@@ -162,6 +170,8 @@ void set_Enables_High(){
       HAL_GPIO_WritePin(GPIOC, GPIO_PIN_4, GPIO_PIN_SET);
       HAL_GPIO_WritePin(GPIOC, GPIO_PIN_5, GPIO_PIN_SET);
 }
+
+//Sets enable pins low for all motor enables (enables motors as it is inverted)
 void set_Enables_Low(){
       HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
       HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_RESET);
@@ -173,7 +183,7 @@ void set_Enables_Low(){
       HAL_GPIO_WritePin(GPIOC, GPIO_PIN_5, GPIO_PIN_RESET);
 }
 
-
+//Sets motor speed based on recieved messages
 int Motor_Control(){
 
 	int direction = 1;
@@ -226,6 +236,7 @@ int Motor_Control(){
 
 }
 
+//Turns on, flashes rhythmically, or powers off leds based on recieved message
 void LED_Control(){
 
 
@@ -249,6 +260,35 @@ void LED_Control(){
 }
 
 
+//Toggles LED On or Off depending on LED mode and current count on timer
+void LEDToggle(uint16_t pin,int Timer){
+
+
+	if(Timer == 0){
+		HAL_GPIO_WritePin(GPIOC, pin, 0);
+	}
+	else if(Timer == 1){
+		
+		HAL_GPIO_WritePin(GPIOC, pin, LEDState1);
+	}
+	else if(Timer == 2){
+		HAL_GPIO_WritePin(GPIOC, pin, LEDState2);
+	}
+	else if(Timer == 3){
+		HAL_GPIO_WritePin(GPIOC, pin, 1);
+	}
+
+
+}
+
+void SendUpdate(){
+
+	if(Timecount == TimeBetweenStatusUpdates){
+		HAL_UART_Transmit(&huart1, statusUpdate, StatusUpdateSize, 0xFFFF);
+	}
+}
+
+//Reads information from the buffer, changes behaviour of the board based on the information and increments index in buffer 
 void readBuffer(){
 
 	if(circleBuffer[circleBufferRead] == 'M'){
@@ -280,33 +320,6 @@ void readBuffer(){
 	circleBufferRead += 3;
 	if(circleBufferRead >= CIRCULAR_BUFFER_SIZE-1){
 		circleBufferRead = 0;
-	}
-}
-
-void LEDToggle(uint16_t pin,int Timer){
-
-
-	if(Timer == 0){
-		HAL_GPIO_WritePin(GPIOC, pin, 0);
-	}
-	else if(Timer == 1){
-		
-		HAL_GPIO_WritePin(GPIOC, pin, LEDState1);
-	}
-	else if(Timer == 2){
-		HAL_GPIO_WritePin(GPIOC, pin, LEDState2);
-	}
-	else if(Timer == 3){
-		HAL_GPIO_WritePin(GPIOC, pin, 1);
-	}
-
-
-}
-
-void SendUpdate(){
-
-	if(Timecount == TimeBetweenStatusUpdates){
-		HAL_UART_Transmit(&huart1, statusUpdate, StatusUpdateSize, 0xFFFF);
 	}
 }
 

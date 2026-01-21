@@ -1,0 +1,17 @@
+../Core/Src/main.c:100:5:Motor_Control	2
+../Core/Src/main.c:118:6:readBuffer	11
+../Core/Src/main.c:152:6:LED_Control	4
+../Core/Src/main.c:175:6:SendUpdate	2
+../Core/Src/main.c:188:5:main	2
+../Core/Src/main.c:249:6:SystemClock_Config	3
+../Core/Src/main.c:295:13:MX_NVIC_Init	1
+../Core/Src/main.c:310:13:MX_I2C1_Init	2
+../Core/Src/main.c:344:13:MX_TIM6_Init	3
+../Core/Src/main.c:382:13:MX_TIM9_Init	3
+../Core/Src/main.c:420:13:MX_USART1_UART_Init	2
+../Core/Src/main.c:453:13:MX_USART2_UART_Init	2
+../Core/Src/main.c:484:13:MX_DMA_Init	1
+../Core/Src/main.c:502:13:MX_GPIO_Init	1
+../Core/Src/main.c:585:6:HAL_UART_RxCpltCallback	2
+../Core/Src/main.c:599:6:HAL_TIM_PeriodElapsedCallback	7
+../Core/Src/main.c:648:6:Error_Handler	1

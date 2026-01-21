@@ -1,0 +1,5 @@
+../Core/Src/T100MotorControl.c:13:6:Initialize_Motors	1
+../Core/Src/T100MotorControl.c:63:5:Bitwise_Motor_Control	11
+../Core/Src/T100MotorControl.c:108:6:Stop_All_Motors	1
+../Core/Src/T100MotorControl.c:125:6:Disable_Motor_Power_Outputs	1
+../Core/Src/T100MotorControl.c:135:6:Enable_Motor_Power_Outputs	1

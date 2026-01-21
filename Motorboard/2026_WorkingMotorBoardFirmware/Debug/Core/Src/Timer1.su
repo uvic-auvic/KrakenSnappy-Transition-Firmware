@@ -1,0 +1,6 @@
+../Core/Src/Timer1.c:3:6:AF_INIT	24	static
+../Core/Src/Timer1.c:37:6:INIT_TIM	24	static
+../Core/Src/Timer1.c:82:6:INIT_TIM_PWM	24	static
+../Core/Src/Timer1.c:138:6:Start_TIM	16	static
+../Core/Src/Timer1.c:150:6:Start_PWM	48	static
+../Core/Src/Timer1.c:187:6:Set_Duty_Cycle	40	static
